@@ -55,6 +55,7 @@
 #include "global.h"
 #include "parser.h"
 #include "const.h"
+#include "file_time.h"
 
 /*
  * enable [set] globbing, if available
@@ -80,6 +81,7 @@ int iflag;					/**< incremental update */
 int Iflag;					/**< make  idutils index */
 int Oflag;					/**< use objdir */
 int qflag;					/**< quiet mode */
+int tflag;					/**< use individual file timestamps */
 int wflag;					/**< warning message */
 int vflag;					/**< verbose mode */
 int show_version;
@@ -147,7 +149,7 @@ printconf(const char *name)
 	return exist;
 }
 
-const char *short_options = "cC:d:f:iIn:oOqvwse";
+const char *short_options = "cC:d:f:iIn:oOqtvwse";
 struct option const long_options[] = {
 	/*
 	 * These options have long name and short name.
@@ -166,6 +168,7 @@ struct option const long_options[] = {
 	{"omit-gsyms", no_argument, NULL, 'o'},		/* removed */
 	{"objdir", no_argument, NULL, 'O'},
 	{"quiet", no_argument, NULL, 'q'},
+	{"time-each", no_argument, NULL, 't'},
 	{"verbose", no_argument, NULL, 'v'},
 	{"warning", no_argument, NULL, 'w'},
 
@@ -352,6 +355,9 @@ main(int argc, char **argv)
 			break;
 		case 'q':
 			qflag++;
+			break;
+		case 't':
+			tflag++;
 			break;
 		case 'w':
 			wflag++;
@@ -727,6 +733,9 @@ incremental(const char *dbpath, const char *root)
 			total++;
 		}
 	} else {
+		if (tflag) {
+			ft_read(dbpath);
+		}
 		if (file_list)
 			find_open_filelist(file_list, root, explain);
 		else
@@ -745,7 +754,7 @@ incremental(const char *dbpath, const char *root)
 			if (stat(path, &statp) < 0)
 				die("stat failed '%s'.", path);
 			fid = gpath_path2fid(path, NULL);
-			if (fid) { 
+			if (fid) {
 				n_fid = atoi(fid);
 				idset_add(findset, n_fid);
 			}
@@ -756,7 +765,8 @@ incremental(const char *dbpath, const char *root)
 				if (fid == NULL) {
 					strbuf_puts0(addlist, path);
 					total++;
-				} else if (gtags_mtime < statp.st_mtime) {
+				} else if (tflag ? ft_update(n_fid, statp.st_mtime) :
+							(gtags_mtime < statp.st_mtime)) {
 					strbuf_puts0(addlist, path);
 					total++;
 					idset_add(deleteset, n_fid);
@@ -764,6 +774,9 @@ incremental(const char *dbpath, const char *root)
 			}
 		}
 		find_close();
+		if (tflag) {
+			ft_write(dbpath);
+		}
 		/*
 		 * make delete list.
 		 */
@@ -1013,6 +1026,7 @@ createtags(const char *dbpath, const char *root)
 	struct put_func_data data;
 	int openflags, flags, seqno;
 	const char *path;
+	struct stat statp;
 
 	tim = statistics_time_start("Time of creating %s and %s.", dbname(GTAGS), dbname(GRTAGS));
 	if (vflag)
@@ -1058,12 +1072,20 @@ createtags(const char *dbpath, const char *root)
 		data.fid = gpath_path2fid(path, NULL);
 		if (data.fid == NULL)
 			die("GPATH is corrupted.('%s' not found)", path);
+		if (tflag) {
+			if (stat(path, &statp) < 0)
+				die("stat failed '%s'.", path);
+			ft_update(atoi(data.fid), statp.st_mtime);
+		}
 		seqno++;
 		if (vflag)
 			fprintf(stderr, " [%d] extracting tags of %s\n", seqno, path + 2);
 		parse_file(path, flags, put_syms, &data);
 		gtags_flush(data.gtop[GTAGS], data.fid);
 		gtags_flush(data.gtop[GRTAGS], data.fid);
+	}
+	if (tflag) {
+		ft_write(dbpath);
 	}
 	total = seqno;
 	parser_exit();

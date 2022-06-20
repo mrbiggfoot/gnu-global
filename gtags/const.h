@@ -1,6 +1,6 @@
 /* This file is generated automatically by convert.pl from gtags/manual.in. */
 const char *progname = "gtags";
-const char *usage_const = "Usage: gtags [-ciIOqvw][-C dir][-d tag-file][-f file][dbpath]\n";
+const char *usage_const = "Usage: gtags [-ciIOqtvw][-C dir][-d tag-file][-f file][dbpath]\n";
 const char *help_const = "Options:\n\
 --accept-dotfiles\n\
        Accept files and directories whose names begin with a dot.\n\
@@ -70,6 +70,9 @@ const char *help_const = "Options:\n\
        Print statistics information.\n\
 -q, --quiet\n\
        Quiet mode.\n\
+-t, --time-each\n\
+       For incremental update, use individual timestamps instead of the DB one.\n\
+       Generates GTIMES file that stores the last used timestamps.\n\
 -v, --verbose\n\
        Verbose mode.\n\
 --version\n\
