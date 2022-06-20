@@ -149,6 +149,8 @@ Options:\n\
        The --path-style option is given more priority than the -a option.\n\
 --print0\n\
        Print each record followed by a null character instead of a newline.\n\
+--print-all min_length\n\
+       Print all symbol names of at least min_length size.\n\
 -q, --quiet\n\
        Quiet mode.\n\
 -r, --reference, --rootdir\n\

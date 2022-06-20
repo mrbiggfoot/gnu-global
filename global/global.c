@@ -93,6 +93,7 @@ void idutils(const char *, const char *);
 void grep(const char *, char *const *, const char *);
 void pathlist(const char *, const char *);
 void parsefile(char *const *, const char *, const char *, const char *, int);
+static void print_all(const char *, const char *, int);
 int search(const char *, const char *, const char *, const char *, int);
 void tagsearch(const char *, const char *, const char *, const char *, int);
 void encode(char *, int, const char *);
@@ -131,6 +132,7 @@ int nosource;				/**< undocumented command */
 int debug;
 int literal;				/**< 1: literal search	*/
 int print0;				/**< --print0 option	*/
+int print_all_len = -1;		/**< --print-all <min_length> value */
 int format;
 int type;				/**< path conversion type */
 int match_part;				/**< match part only	*/
@@ -180,6 +182,7 @@ help(void)
 #define OPT_PATH_CONVERT	134
 #define OPT_USE_COLOR		135
 #define OPT_PRINT		136
+#define OPT_PRINT_ALL		137
 #define SORT_FILTER     1
 #define PATH_FILTER     2
 #define BOTH_FILTER     (SORT_FILTER|PATH_FILTER)
@@ -235,6 +238,7 @@ struct option const long_options[] = {
 	{"path-convert", required_argument, NULL, OPT_PATH_CONVERT},
 	{"print", required_argument, NULL, OPT_PRINT},
 	{"print0", no_argument, &print0, 1},
+	{"print-all", required_argument, NULL, OPT_PRINT_ALL},
 	{"version", no_argument, &show_version, 1},
 	{"help", no_argument, &show_help, 1},
 	{"result", required_argument, NULL, OPT_RESULT},
@@ -599,6 +603,9 @@ main(int argc, char **argv)
 		case OPT_PRINT:
 			print_target = optarg;
 			break;
+		case OPT_PRINT_ALL:
+			print_all_len = atoi(optarg);
+			break;
 		case OPT_RESULT:
 			if (!strcmp(optarg, "ctags-x"))
 				format = FORMAT_CTAGS_X;
@@ -656,6 +663,15 @@ main(int argc, char **argv)
 		 */
 		if (set_nearbase_path(nearbase) == NULL)
 			die("invalid nearness file or directory (--nearness=%s).", nearbase);
+	}
+	/*
+	 * print all symbol names.
+	 */
+	if (print_all_len >= 0) {
+		print_all(root, dbpath, GTAGS);
+		print_all(root, dbpath, GRTAGS);
+		print_all(root, dbpath, GSYMS);
+		exit(0);
 	}
 	/*
 	 * decide format.
@@ -1856,6 +1872,36 @@ parsefile(char *const *argv, const char *cwd, const char *root, const char *dbpa
 		print_count(count);
 		fprintf(stderr, " (no index used).\n");
 	}
+}
+/**
+ * print_all: print all tags in the db
+ *
+ *	@param[in]	root		root of source tree
+ *	@param[in]	dbpath		database directory
+ *	@param[in]	db		GTAGS,GRTAGS,GSYMS
+ */
+static void
+print_all(const char *root, const char *dbpath, int db)
+{
+	GTOP *gtop;
+	GTP *gtp;
+	const int flags = GTOP_KEY | GTOP_NOSORT;
+
+	gtop = gtags_open(dbpath, root, db, GTAGS_READ, debug ? GTAGS_DEBUG : 0);
+	if (print_all_len > 0) {
+		for (gtp = gtags_first(gtop, NULL, flags); gtp; gtp = gtags_next(gtop)) {
+			if (strlen(gtp->tag) >= (size_t)print_all_len) {
+				printf("%s\n", gtp->tag);
+			}
+		}
+	} else {
+		for (gtp = gtags_first(gtop, NULL, flags); gtp; gtp = gtags_next(gtop)) {
+			printf("%s\n", gtp->tag);
+		}
+	}
+	if (debug)
+		gtags_show_statistics(gtop);
+	gtags_close(gtop);
 }
 /**
  * search: search specified function 
