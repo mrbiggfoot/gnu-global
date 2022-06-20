@@ -25,11 +25,12 @@ AC_INIT([GNU GLOBAL],[6.6.8])
 AC_DEFINE(COPYRIGHT_YEAR,["1996-2021"],[Copyright Year])
 AC_CONFIG_SRCDIR(global/global.c)
 AC_CONFIG_HEADERS([config.h:config-h.in])
-AC_PREREQ(2.59)
+AC_PREREQ([2.69])
 AM_INIT_AUTOMAKE([1.9.3 gnu subdir-objects])
 
 dnl Checks for programs.
 AC_PROG_CC
+AC_PROG_CXX
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 AM_PATH_LISPDIR
@@ -45,16 +46,19 @@ dnl for "plugin-factory/pygments_parser.py"
 dnl
 AM_PATH_PYTHON([2.6],,[PYTHON="/usr/bin/env python"])
 
-AC_GNU_SOURCE
+AC_USE_SYSTEM_EXTENSIONS
 
 LT_PREREQ([2.2.6b])
 LT_CONFIG_LTDL_DIR([libltdl])
 dnl
 dnl Because autoreconf up to version 2.59 doesn't know LT_INIT,
-dnl we use the old name AC_PROG_LIBTOOL.
+dnl we use the old name LT_INIT.
 dnl
-AC_LIBTOOL_DLOPEN
-AC_PROG_LIBTOOL
+_LT_SET_OPTION([LT_INIT],[dlopen])
+AC_DIAGNOSE([obsolete],[AC_LIBTOOL_DLOPEN: Remove this warning and the call to _LT_SET_OPTION when you
+put the 'dlopen' option into LT_INIT's first parameter.])
+
+LT_INIT
 LTDL_INIT([recursive])
 
 dnl Checks for libraries.
@@ -127,7 +131,18 @@ dnl Checks for library functions.
 AC_FUNC_ALLOCA
 AC_FUNC_MMAP
 AC_FUNC_MEMCMP
-AC_TYPE_SIGNAL
+AC_DIAGNOSE([obsolete],[your code may safely assume C89 semantics that RETSIGTYPE is void.
+Remove this warning and the `AC_CACHE_CHECK' when you adjust the code.])dnl
+AC_CACHE_CHECK([return type of signal handlers],[ac_cv_type_signal],[AC_COMPILE_IFELSE(
+[AC_LANG_PROGRAM([#include <sys/types.h>
+#include <signal.h>
+],
+		 [return *(signal (0, 0)) (0) == 1;])],
+		   [ac_cv_type_signal=int],
+		   [ac_cv_type_signal=void])])
+AC_DEFINE_UNQUOTED([RETSIGTYPE],[$ac_cv_type_signal],[Define as the return type of signal handlers
+		    (`int' or `void').])
+
 AC_FUNC_STRFTIME
 AC_CHECK_FUNCS(getcwd putenv lstat snprintf)
 AC_CHECK_FUNCS(index rindex bzero bcmp bcopy strchr strrchr memset memcmp memmove)

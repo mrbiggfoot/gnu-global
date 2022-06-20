@@ -38,3 +38,6 @@ plugin-factory/.deps/
 plugin-factory/.libs/
 stamp-h1
 autom4te.cache/
+config-h.in~
+configure.ac~
+configure~

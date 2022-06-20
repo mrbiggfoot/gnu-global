@@ -12,6 +12,10 @@
 #
 bin_PROGRAMS= gtags
 
+gtags_SOURCES = gtags.c file_time.cpp
+
+noinst_HEADERS = file_time.h
+
 AM_CPPFLAGS = @AM_CPPFLAGS@
 
 LDADD = @LDADD@
