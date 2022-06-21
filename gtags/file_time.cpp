@@ -17,12 +17,14 @@ static string ft_name(const char *dbpath) {
 }
 
 void ft_read(const char *dbpath) {
+  g_ft_map.clear();
   const string name = ft_name(dbpath);
   FILE *fp = fopen(name.c_str(), "rb");
   if (!fp) {
-    die("Failed to open '%s' for read", name.c_str());
+    fprintf(stderr, "Failed to open '%s' for read, assuming absence\n",
+            name.c_str());
+    return;
   }
-  g_ft_map.clear();
 
   int fid;
   time_t ftime;
