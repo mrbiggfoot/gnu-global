@@ -1,0 +1,50 @@
+#!/bin/env python3
+# vim: syntax=python
+
+import argparse
+import os
+import subprocess
+import sys
+
+args = None
+
+def parse_args():
+  global args
+  parser = argparse.ArgumentParser(
+      description='Run parallel GNU global queries.',
+      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+  parser.add_argument('-n', type=int, default=16,
+      help='Number of parallel instances')
+  parser.add_argument('dbpath',
+      help='Path where the 1..n gtags databases are located')
+  parser.add_argument('global_args', nargs=argparse.REMAINDER,
+      help='Arguments to be passed to each "global" instance')
+  args = parser.parse_args()
+  if args.n < 1 or args.n > 1000:
+    sys.exit('-n %d is out of range 1..1000' % args.n)
+
+def run_instances():
+  processes = []
+  cwd = os.getcwd()
+
+  for n in range(args.n):
+    chunk_dir = os.path.join(args.dbpath, '%03d' % n)
+    chunk_env = os.environ.copy()
+    chunk_env['GTAGSROOT'] = cwd
+    chunk_env['GTAGSDBPATH'] = chunk_dir
+    global_cmd = ['global'] + args.global_args
+
+    processes.append(subprocess.Popen(global_cmd, stdout=subprocess.PIPE,
+      stderr=subprocess.PIPE, env=chunk_env))
+
+  for p in processes:
+    out, err = p.communicate()
+    sys.stdout.buffer.write(out)
+    sys.stderr.buffer.write(err)
+
+def main():
+  parse_args()
+  run_instances()
+
+if __name__ == '__main__':
+  main()
