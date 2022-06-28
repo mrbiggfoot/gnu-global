@@ -1,0 +1,55 @@
+#!/bin/env python3
+# vim: syntax=python
+
+import argparse
+import os
+import subprocess
+import sys
+
+args = None
+
+def parse_args():
+  global args
+  parser = argparse.ArgumentParser(
+      description='Find the DB the file belongs to (based on DBPATH/files).',
+      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+  parser.add_argument('-n', type=int, default=16,
+      help='Number of parallel instances')
+  parser.add_argument('dbpath',
+      help='Path where the 1..n gtags databases are located')
+  parser.add_argument('file_name',
+      help='File name to find')
+  args = parser.parse_args()
+  if args.n < 1 or args.n > 1000:
+    sys.exit('-n %d is out of range 1..1000' % args.n)
+
+def run_instances():
+  processes = []
+  file_name = os.path.relpath(args.file_name)
+
+  for n in range(args.n):
+    chunk_dir = os.path.join(args.dbpath, '%03d' % n)
+    grep_cmd = ['grep', file_name, os.path.join(chunk_dir, 'files')]
+
+    processes.append(subprocess.Popen(grep_cmd, stdout=subprocess.PIPE,
+      stderr=subprocess.PIPE))
+
+  error = False
+
+  for n, p in enumerate(processes):
+    out, err = p.communicate()
+    sys.stderr.buffer.write(err)
+    if err:
+      error = True
+    if p.returncode == 0:
+      print(os.path.join(args.dbpath, '%03d' % n))
+
+  if error:
+    sys.exit(1)
+
+def main():
+  parse_args()
+  run_instances()
+
+if __name__ == '__main__':
+  main()
